@@ -2,28 +2,31 @@
 # FCT-UNESP, 2023
 # Autor: Daniel Serezane
 
-# Biblioteca para cifragem de strings
+# Biblioteca "Sombra" para cifragem de strings
 
+# numpy utilizado APENAS para criação de matrizes e embaralhamento de strings
 import numpy as np
 
 # Técnica de Substituição
-def subs(string):
+def subs(string, key):
+    n = len(key)
     # Rotaciona cada caractere da string em 7 posições à esquerda
     # Exemplo: 'a' -> 't'
     for i in range(len(string)):
-        val = ord(string[i]) - 7
+        val = ord(string[i]) - n
         if val < 0:
             # Além de prevenir negativos, isso também ajuda a ficar dentro dos ASCII, facilitando a escrita do arquivo
             val += 256
         string = string[:i] + chr(val) + string[i+1:]
     return string
 # Reversa
-def rev_subs(string):
+def rev_subs(string, key):
+    n = len(key)
     # Rotaciona cada caractere da string em 7 posições à direita,
     # assim revertendo a cifragem por substituição
     # Exemplo: 't' -> 'a'
     for i in range(len(string)):
-        val = ord(string[i]) + 7
+        val = ord(string[i]) + n
         if val > 255:
             val -= 256
         string = string[:i] + chr(val) + string[i+1:]
@@ -128,3 +131,24 @@ class RotorMachine:
         for char in string:
             out += self.decrypt_char(char)
         return out
+
+def master_encrypt(message, key):
+    # Primeiro, por substituição
+    out = subs(message, key)
+    # Depois, por transposição
+    out = trans(out, key)
+    # Por fim, pela máquina de rotor
+    rotor_machine = RotorMachine(key)
+    out = rotor_machine.encrypt(out)
+    return out
+
+# Descriptografa a mensagem	
+def master_decrypt(message, key):
+    # Primeiro, pela máquina de rotor
+    rotor_machine = RotorMachine(key)
+    out = rotor_machine.decrypt(message)
+    # Depois, por transposição
+    out = rev_trans(out, key)
+    # Por fim, por substituição
+    out = rev_subs(out, key)
+    return out
