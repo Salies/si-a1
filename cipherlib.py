@@ -92,6 +92,31 @@ def rev_trans(string, key):
 
     return ''.join(aux_matrix.flatten()).rstrip()
 
+# Máquina de rotor único
+class RotorMachine:
+    def __init__(self, key):
+        self.reset(key)
+
+    def reset(self, key):
+        # Inicializa o rotor
+        self.rotor = [i for i in range(256)]
+        # Embaralha o rotor de acordo com a chave
+        for i in range(len(key)):
+            np.random.seed(ord(key[i]))
+            np.random.shuffle(self.rotor)
+
+    def encrypt_char(self, char):
+        out = chr(self.rotor.index(ord(char)))
+        # Rotaciona o rotor
+        self.rotor = self.rotor[1:] + self.rotor[:1]
+        return out
+    
+    def decrypt_char(self, char):
+        out = chr(self.rotor[ord(char)])
+        # Rotaciona o rotor
+        self.rotor = self.rotor[1:] + self.rotor[:1]
+        return out
+
 
 f = open('texto.txt', 'r')
 msg = f.read()
@@ -104,3 +129,15 @@ t = trans(msg, key)
 print(t)
 r = rev_trans(t, key)
 print(r)
+
+rotor_machine = RotorMachine(key)
+
+teste = []
+for char in 'batata':
+    teste.append(rotor_machine.encrypt_char(char))
+print(''.join(teste))
+
+rotor_machine.reset(key)
+
+for char in teste:
+    print(rotor_machine.decrypt_char(char))
