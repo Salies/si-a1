@@ -116,28 +116,15 @@ class RotorMachine:
         # Rotaciona o rotor
         self.rotor = self.rotor[1:] + self.rotor[:1]
         return out
-
-
-f = open('texto.txt', 'r')
-msg = f.read()
-f.close()
-f = open('chave.txt', 'r')
-key = f.read()
-f.close()
-
-t = trans(msg, key)
-print(t)
-r = rev_trans(t, key)
-print(r)
-
-rotor_machine = RotorMachine(key)
-
-teste = []
-for char in 'batata':
-    teste.append(rotor_machine.encrypt_char(char))
-print(''.join(teste))
-
-rotor_machine.reset(key)
-
-for char in teste:
-    print(rotor_machine.decrypt_char(char))
+    
+    def encrypt(self, string):
+        out = ''
+        for char in string:
+            out += self.encrypt_char(char)
+        return out
+    
+    def decrypt(self, string):
+        out = ''
+        for char in string:
+            out += self.decrypt_char(char)
+        return out
