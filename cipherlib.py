@@ -4,12 +4,18 @@
 
 # Biblioteca para cifragem de strings
 
+import numpy as np
+
 # Técnica de Substituição
 def subs(string):
     # Rotaciona cada caractere da string em 7 posições à esquerda
     # Exemplo: 'a' -> 't'
     for i in range(len(string)):
-        string = string[:i] + chr(ord(string[i]) - 7) + string[i+1:]
+        val = ord(string[i]) - 7
+        if val < 0:
+            # Além de prevenir negativos, isso também ajuda a ficar dentro dos ASCII, facilitando a escrita do arquivo
+            val += 256
+        string = string[:i] + chr(val) + string[i+1:]
     return string
 # Reversa
 def rev_subs(string):
@@ -17,105 +23,84 @@ def rev_subs(string):
     # assim revertendo a cifragem por substituição
     # Exemplo: 't' -> 'a'
     for i in range(len(string)):
-        string = string[:i] + chr(ord(string[i]) + 7) + string[i+1:]
+        val = ord(string[i]) + 7
+        if val > 255:
+            val -= 256
+        string = string[:i] + chr(val) + string[i+1:]
     return string
 
 # Técnica de Transposição
 # Usando tranposição de colunas
 def trans(string, key):
-    n = len(string) / len(key)
-    # arredonda n para cima
-    if n % 1 != 0: n += 1
-    n = int(n)
-    # Cria uma matriz com o número de colunas igual à chave
-    matrix = np.ndarray((n, len(key)), dtype='S1')
-    print((n, len(key)))
-    matrix.fill('')
+    matrix = []
     k = 0
     breaker = False
-    for i in range(len(string)):
-        if breaker: break
-        for j in range(len(key)):
-            if k == len(string):
-                breaker = True
-                break
-            matrix[i][j] = string[k]
-            k += 1
+    # Cria uma matriz com o número de colunas igual à chave
+    # A matriz não pode ser irregular, para mantermos os espaços
+    while not breaker:
+        matrix.append([])
+        for _ in range(len(key)):
+            if k < len(string):
+                matrix[-1].append(string[k])
+                k += 1
+                continue
+            breaker = True
+            break
+
+    if len(matrix[-1]) < len(key):
+        for _ in range(len(key) - len(matrix[-1])):
+            matrix[-1].append(' ')
 
     # Ordena as colunas da matriz de acordo com a ordem alfabética da chave
-    key_indexes = [ord(i) for i in key]
-    key_indexes_sorted = sorted(key_indexes)
-    col_idx = np.ndarray((len(key),), dtype='int')
-    for i in range(len(key_indexes)):
-        val = key_indexes_sorted[i]
-        idx_val = key_indexes.index(val)
-        col_idx[idx_val] = i
-
+    # Exemplo: 'ezran' -> '1 4 3 0 2'
+    key_ords = [ord(i) for i in key]
+    key_ords_sorted = sorted(key_ords)
+    for i in range(len(key)):
+        val = key_ords_sorted[i]
+        idx = key_ords.index(val)
+        key_ords[idx] = i
+    
+    matrix = np.array(matrix)
+    
     # Embaralha as colunas da matriz
-    matrix = matrix[:, col_idx]
-
-    print(matrix)
-
-    # to string
-    out = matrix.flatten('F')
-    out = [i.decode('utf-8') for i in out]
-    out = ''.join(out)
-
-    return out
+    matrix = matrix[:, key_ords]
+    
+    # Retorna a matriz como uma string
+    return ''.join(matrix.flatten('F'))
 
 def rev_trans(string, key):
-    # Recuperando a matriz original...
-    # Calculando as medidas
+    # Calcula o tamanho da matriz
     n_cols = len(key)
-    n_rows = len(string) // n_cols + int(len(string) % n_cols > 0)
+    n_rows = len(string) // n_cols
+    n_rows += 1 if len(string) % n_cols != 0 else 0
 
-    print((n_rows, n_cols))
+    # Recupera a matriz a partir da string
+    matrix = np.array([i for i in string]).reshape(n_cols, n_rows).T
 
-    print(list(string[0:38]))
-
-    # Cria uma matriz vazia
-    matrix = np.ndarray((n_rows, n_cols), dtype='S1')
-    matrix[0][0] = 'a'
-    # Para cada coluna, acumula n_rows caracteres da string
-    k = 0 # contador da string
-    for i in range(n_cols):
-        j = 0
-        col = np.full((n_rows,), '', dtype='S1')
-        while j < n_rows:
-            if k == len(string): break
-            col[j] = str(string[k])
-            j += 1
-            k += 1
-        matrix[:,i] = col
-    # Transforma a lista de arrays em uma matriz
-    # cada elemento é uma coluna da matriz
-    print(matrix)
-    
-    # Ordena as colunas da matriz de acordo com a ordem alfabética da chave
-    # mas agora em ordem reversa
-    '''key_indexes = [ord(i) for i in key]
-    key_indexes_sorted = sorted(key_indexes, reverse=True)
-    col_idx = np.ndarray((len(key),), dtype='int')
-    for i in range(len(key_indexes)):
-        val = key_indexes_sorted[i]
-        idx_val = key_indexes.index(val)
-        col_idx[idx_val] = i
+    # Calcula a ordenação proporcionada pela chave
+    key_ords = [ord(i) for i in key]
+    key_ords_sorted = sorted(key_ords)
+    for i in range(len(key)):
+        val = key_ords_sorted[i]
+        idx = key_ords.index(val)
+        key_ords[idx] = i
 
     # Desembaralha as colunas da matriz
-    matrix = matrix[:, col_idx]
+    aux_matrix = np.empty_like(matrix)
+    for i in range(len(key)):
+        aux_matrix[:, key_ords[i]] = matrix[:, i]
 
-    print(matrix)'''
+    return ''.join(aux_matrix.flatten()).rstrip()
 
-    out = ''
 
-    return out
+f = open('texto.txt', 'r')
+msg = f.read()
+f.close()
+f = open('chave.txt', 'r')
+key = f.read()
+f.close()
 
-msg = "Long ago, Xadia was one land rich in magic and wonder. In the old times, there were only the six Primal Sources of magic. The Sun. The Moon. The Stars. The Earth. The Sky. And the Ocean."
-# remove espaços
-#msg = msg.replace(' ', '')
-
-t = trans(msg, 'ezran')
-
-#print()
-
-rev_trans(t, 'ezran')
+t = trans(msg, key)
+print(t)
+r = rev_trans(t, key)
+print(r)
